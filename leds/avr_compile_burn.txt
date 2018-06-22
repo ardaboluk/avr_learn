@@ -1,0 +1,3 @@
+avr-gcc -Wall -g -Os -mmcu=atmega168p -o blinkLed.bin blinkLED.c -DF_CPU=1000000UL -DBAUD=9600UL
+avr-objcopy -j .text -j .data -O ihex blinkLed.bin blinkLed.hex
+avrdude -p m168p -c usbasp -U flash:w:blinkLed.hex:i -F -P usb
