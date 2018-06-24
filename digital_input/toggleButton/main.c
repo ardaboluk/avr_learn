@@ -1,5 +1,6 @@
 
 #include <avr/io.h>
+#include <util/delay.h>
 
 #define BUTTON_DDR DDRD
 #define BUTTON_PORT PORTD
@@ -10,6 +11,18 @@
 
 #define BUTTON_BIT PD2
 #define LED_BIT PB1
+
+#define DEBOUNCE_TIME_uS 1000
+
+uint8_t debounce(){
+    if((BUTTON_PIN & (1 << BUTTON_BIT)) == 0){
+        _delay_us(DEBOUNCE_TIME_uS);
+        if((BUTTON_PIN & (1 << BUTTON_BIT)) == 0){
+            return 1;
+        }
+    }
+    return 0;
+}
 
 int main(void){
 
@@ -23,7 +36,7 @@ int main(void){
     // main event loop
     while(1){
 
-        if((BUTTON_PIN & (1 << BUTTON_BIT)) == 0){
+        if(debounce()){                     // debounced button press
             if(button_was_pressed == 0){
                 LED_PORT ^= (1 << LED_BIT);
                 button_was_pressed = 1;     // this could also come after this if block
