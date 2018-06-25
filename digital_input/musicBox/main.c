@@ -52,7 +52,7 @@ int main(void){
             button_was_pressed = 0;
         }
     }
-    
+
     return 0;
 }
 
