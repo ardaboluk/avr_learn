@@ -9,7 +9,7 @@ int main(void){
     
     DDRB = 0xff;
     
-    while(1){z
+    while(1){
         
         if(!(PIND & (1 << PD2))){
             PORTB = 1 << PB1;
