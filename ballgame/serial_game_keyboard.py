@@ -59,8 +59,8 @@ ground_image = pygame.image.load("{}/{}".format(images_dir, ground_image_file))
 kid_jumping_sprite_index = 3
 
 # lower and upper limits of the angle and the velocity of the ball
-ball_velocity_lower_limit = 10
-ball_velocity_upper_limit = 45
+ball_velocity_lower_limit = 20
+ball_velocity_upper_limit = 60
 ball_angle_lower_limit = 0
 ball_angle_upper_limit = 90
 
@@ -114,8 +114,8 @@ def render_shooting_arrow(velocity, angle_in_deg, kid_lowerleft_x, kid_lowerleft
     angle_in_rad = angle_in_deg * math.pi / 180
     arrow_line_base_point_x = kid_lowerleft_x + kid_images[0].get_width() - 2
     arrow_line_base_point_y = kid_lowerleft_y - kid_images[0].get_height() + 2
-    arrow_line_top_point_x = arrow_line_base_point_x + 5 * velocity * math.cos(angle_in_rad)
-    arrow_line_top_point_y = arrow_line_base_point_y - 5 * velocity * math.sin(angle_in_rad)
+    arrow_line_top_point_x = arrow_line_base_point_x + 2 * velocity * math.cos(angle_in_rad)
+    arrow_line_top_point_y = arrow_line_base_point_y - 2 * velocity * math.sin(angle_in_rad)
     # point1 of the triangle of the arrow makes 135 degrees with the angle of the arrow from the middle point
     # point2 of the triangle of the arrow makes 225 degrees with the angle of the arrow from the middle point
     arrow_triangle_middle_point_x = arrow_line_top_point_x
@@ -133,11 +133,11 @@ def render_shooting_arrow(velocity, angle_in_deg, kid_lowerleft_x, kid_lowerleft
         (arrow_triangle_middle_point_x, arrow_triangle_middle_point_y),
         (arrow_triangle_point2_x, arrow_triangle_point2_y)])
 
-def calculate_ball_position(velocity, angle_in_deg, frame_counter):
+def calculate_ball_position(velocity_initial, angle_in_deg_initial, frame_counter):
     """Calculates the positions of the ball while on the fly."""
-    angle_in_rad = angle_in_deg * math.pi / 180
-    vx0 = 3 * velocity * math.cos(angle_in_rad)
-    vy0 = 3 * velocity * math.sin(angle_in_rad)
+    angle_in_rad_initial = angle_in_deg_initial * math.pi / 180
+    vx0 = 2 * velocity_initial * math.cos(angle_in_rad_initial)
+    vy0 = 2 * velocity_initial * math.sin(angle_in_rad_initial)
     dist_x = vx0 * frame_counter
     dist_y = (vy0 * frame_counter) - (0.5 * 9.8 * (frame_counter ** 2))
     return dist_x, dist_y
@@ -172,7 +172,7 @@ def game_loop():
     # kid sprite expands and shrinks during the animation
     # so, the lower left corner is taken as the reference point
     kid_lowerleft_x = 10
-    kid_lowerleft_y = display_height - ground_image.get_height()
+    kid_lowerleft_y = display_height - ground_image.get_height() + 15
     # hoop sprite expands and shrinks during the animation
     # so, the upper right corner is taken as the reference point
     hoop_upperright_x = display_width
@@ -239,14 +239,6 @@ def game_loop():
             if kid_anim_frame_counter == kid_jumping_sprite_index:
                 ball_fly_anim_playing = True
 
-        # if the ball hits the hoop, stop the ball from flying and start the hoop basket animation
-        if ball_x + ball_images[0].get_width() / 2 > hoop_upperright_x - hoop_images[0].get_width() and \
-            ball_x + ball_images[0].get_width() / 2 < hoop_upperright_x and \
-            ball_y + ball_images[0].get_height() / 2 > hoop_upperright_y and \
-            ball_y + ball_images[0].get_height() / 2 < hoop_upperright_y + hoop_images[0].get_height():
-            ball_fly_anim_playing = False
-            hoop_basket_anim_playing = True
-
         # animate the hoop if the conditions met
         # when the animation is finished, display message, increment score and reset the game
         if hoop_basket_anim_playing == True:
@@ -274,6 +266,12 @@ def game_loop():
         hoop_upperleft_y = hoop_upperright_y
         render_hoop(hoop_upperleft_x, hoop_upperleft_y, hoop_anim_frame_counter)
 
+        # render the velocity and angle text
+        render_velocity_angle_text(ball_velocity, ball_angle)
+
+        # render the score
+        render_score(player_score)
+
         # render the ball if it's on the move
         if ball_fly_anim_playing == True:
             ball_dist_x, ball_dist_y = calculate_ball_position(ball_velocity, ball_angle, ball_anim_frame_counter)
@@ -281,20 +279,22 @@ def game_loop():
                 ball_anim_frame_counter += 1
             render_ball(ball_x + ball_dist_x, ball_y - ball_dist_y, ball_anim_frame_counter)
             # if the ball is out of the screen, display message and reset the game
-            if ball_x + ball_dist_x > display_width and ball_y - ball_dist_y > display_height:
+            if ball_x + ball_dist_x > display_width or ball_y - ball_dist_y > display_height:
                 message_display("Missed!!!")
                 game_loop()
+            # if the ball hits the hoop in the next frame, stop the ball from flying and start the hoop basket animation
+            dist_next_x, dist_next_y = calculate_ball_position(ball_velocity, ball_angle, ball_anim_frame_counter + 1)
+            if ball_x + dist_next_x + ball_images[0].get_width() / 2 > hoop_upperright_x - hoop_images[0].get_width() and \
+                ball_x + dist_next_x + ball_images[0].get_width() / 2 < hoop_upperright_x and \
+                ball_y - dist_next_y + ball_images[0].get_height() / 2 > hoop_upperright_y and \
+                ball_y - dist_next_y + ball_images[0].get_height() / 2 < hoop_upperright_y + hoop_images[0].get_height():
+                ball_fly_anim_playing = False
+                hoop_basket_anim_playing = True
 
         # render the shooting arrow if no animation is playing
         if kid_shoot_anim_playing == False and ball_fly_anim_playing == False and \
             hoop_basket_anim_playing == False:
             render_shooting_arrow(ball_velocity, ball_angle, kid_lowerleft_x, kid_lowerleft_y)
-
-        # render the velocity and angle text
-        render_velocity_angle_text(ball_velocity, ball_angle)
-
-        # render the score
-        render_score(player_score)
 
         # update the frame counter
         frame_counter = (frame_counter + 1) % 1000
