@@ -32,7 +32,7 @@ bg_color = [153, 191, 252]
 random_generator = random.SystemRandom()
 
 font_happy = pygame.font.Font("{}/{}".format(fonts_dir, "happysans.ttf"), 115)
-font_mickey = pygame.font.Font("{}/{}".format(fonts_dir, "mickey.ttf"), 25)
+font_boxy = pygame.font.Font("{}/{}".format(fonts_dir, "boxybold.ttf"), 25)
 
 # multiple images for sprite animation
 ball_image_files = ["sp_ball_1.png", "sp_ball_2.png", "sp_ball_3.png",
@@ -100,13 +100,13 @@ def render_ground():
 
 def render_score(score):
     """Renders the score to the top left corner of the screen."""
-    text = font_mickey.render("Score: " + str(score), True, [0, 0, 0])
-    game_display.blit(text, (0,0))
+    text = font_boxy.render("Score: " + str(score), True, [0, 0, 0])
+    game_display.blit(text, (0, display_height - text.get_height()))
 
 def render_velocity_angle_text(velocity, angle):
     """Renders the velocity and angle as text on the upper right corner of the screen."""
-    text = font_mickey.render("Velocity: {}  Angle: {}".format(velocity, angle), True, [0, 0, 0])
-    game_display.blit(text, (display_width - text.get_width() - 10, 0))
+    text = font_boxy.render("Velocity: {}  Angle: {}".format(velocity, angle), True, [0, 0, 0])
+    game_display.blit(text, (display_width - text.get_width() - 10, display_height - text.get_height()))
 
 def render_shooting_arrow(velocity, angle_in_deg, kid_lowerleft_x, kid_lowerleft_y):
     """Renders an arrow that shows the intended angle and the velocity of the ball."""
