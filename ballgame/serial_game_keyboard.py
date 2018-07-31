@@ -280,6 +280,7 @@ def game_loop():
             render_ball(ball_x + ball_dist_x, ball_y - ball_dist_y, ball_anim_frame_counter)
             # if the ball is out of the screen, display message and reset the game
             if ball_x + ball_dist_x > display_width or ball_y - ball_dist_y > display_height:
+                ball_fly_anim_playing = False
                 message_display("Missed!!!")
                 game_loop()
             # if the ball hits the hoop in the next frame, stop the ball from flying and start the hoop basket animation
