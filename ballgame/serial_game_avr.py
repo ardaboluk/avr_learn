@@ -5,6 +5,9 @@ import math
 import random
 import serial
 
+# if True, incoming and outgoing info will be printed to the screen
+LOGS_ENABLED = True
+
 # setting for serial comm
 PORT = "/dev/ttyUSB0"
 BAUDRATE = 9600
@@ -207,13 +210,22 @@ def game_loop():
         if kid_shoot_anim_playing == False and ball_fly_anim_playing == False and \
             hoop_basket_anim_playing == False:
             serialPort.write(0)
+            if LOGS_ENABLED == True:
+                print("Outgoing: 0")
         else:
             serialPort.write(1)
+            if LOGS_ENABLED == True:
+                print("Outgoing: 1")
 
         # read data from the serial
         # if leftmost 2 bits 00->pot_angle 01->pot_velocity 10->button pressed 11->do nothing
         # rightmost 6 bits are for value
         data_read = ord(serialPort.read(size = 1))
+
+        if LOGS_ENABLED == True:
+            print("Incoming: {}".format(data_read))
+            print("High two: {}".format(data_read >> 6))
+            print("Low six: {}".format((data_read << 2) >> 2))
 
         # if ball isn't thrown yet,
         if kid_shoot_anim_playing == False and ball_fly_anim_playing == False and \
