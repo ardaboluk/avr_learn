@@ -1,5 +1,6 @@
 
 #include <avr/io.h>
+#include <util/setbaud.h>
 #include <util/delay.h>
 
 // define the baud rate if not defined
@@ -44,11 +45,20 @@ void initPinsPorts(){
 
 // initializes USART0
 void initUSART0(){
-    // initialization as in the datasheet
-    unsigned int ubrr = BAUD;   // uint is 16 bits in AVR
-    // the most significant 4 bits are reserved and should be 0
-    UBRR0H = 0x0f & (unsigned char)(ubrr >> 8);
-    UBRR0L = (unsigned char)(ubrr);
+    /* USART initilization is slightly more complicated than that's shown
+    in the datasheet. For some baud rates required error may not be achievable.
+    Thus, it may be required to set the speed to x2 by setting the U2X0 bit in
+    UCSR0A. setbaud.h library provides this functionality. Its usage should be
+    exactly like the one below.*/
+
+    // initialization via setbaud.h
+    UBRR0H = UBRRH_VALUE;
+    UBRR0L = UBRRL_VALUE;
+#if USE_2X
+    UCSR0A |= (1 << U2X0);
+#else
+    UCSR0A &= ~(1 << U2X0)
+#endif
     // enable receiver and transmitter and set the character size to 8-bits
     UCSR0B = (1 << RXEN0) | (1 << TXEN0);
     UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
@@ -60,7 +70,7 @@ void initADC0_leftAdjusted(){
     // as we'll need only leftmost 8 bits
     ADMUX = (1 << REFS0) | (1 << ADLAR);
     // set the prescaler clock division factor to /8
-    ADCSRA = (1 << ADSP1) | (1 << ADSP0);
+    ADCSRA = (1 << ADPS1) | (1 << ADPS0);
     // enable ADC
     ADCSRA |= (1 << ADEN);
 }
@@ -89,7 +99,7 @@ uint8_t receiveByte_USART0(){
 void transmitByte_USART0(uint8_t data){
 
     // wait until the transmitter buffer is empty
-    while(UCSR0A & (1 << UDRE0) == 0);
+    while((UCSR0A & (1 << UDRE0)) == 0);
     // write the low byte to UDR0
     UDR0 = data;
 }
@@ -115,7 +125,7 @@ int main(){
 
     // data that's received from USART0
     // if 0 ball isn't thrown yet, if 1 ball is thrown
-    uint8_t data_received = 0
+    uint8_t data_received = 0;
 
     // data that will be transmitted through USART0
     // if leftmost 2 bits 00->pot_angle 01->pot_velocity 10->button pressed 11->do nothing
@@ -125,15 +135,17 @@ int main(){
     while(1){
         // receive 8-bits from USART0
         data_received = receiveByte_USART0();
+
         // if the ball isn't thrown yet
         if(data_received == 0){
             // turn the green LED on and red LED off
             LEDS_PORT = (1 << LED_GO_BIT);
             // read both of the potentiometer values from the ADC
-            // we're using the low 7 bits of the ADC conversion result
-            // for both of the potentiometers
-            uint8_t current_pot_angle_value = readADC(POT_ANGLE_BIT);
-            uint8_t current_pot_velocity_value = readADC(POT_VELOCITY_BIT);
+            // we're using the high 6 bits of the ADC conversion result
+            // for both of the potentiometers so that the increment to the values
+            // doesn't start over after certain amount
+            uint8_t current_pot_angle_value = readADC_leftmost8(POT_ANGLE_BIT);
+            uint8_t current_pot_velocity_value = readADC_leftmost8(POT_VELOCITY_BIT);
             // also, check if the button is pressed
             uint8_t button_is_pressed = button_push_debounce();
             // set data to be transmitted
@@ -141,18 +153,18 @@ int main(){
                 data_tobe_transmitted = 0x80;
             }else{
                 if(current_pot_angle_value != pot_angle_value){
-                    data_tobe_transmitted = current_pot_angle_value & 0x3f;
+                    data_tobe_transmitted = current_pot_angle_value >> 2;
                     pot_angle_value = current_pot_angle_value;
                 }else if(current_pot_velocity_value != pot_velocity_value){
-                    data_tobe_transmitted = 0x40 | ((current_pot_velocity_value << 2) >> 2);
+                    data_tobe_transmitted = 0x40 | (current_pot_velocity_value >> 2);
                     pot_velocity_value = current_pot_velocity_value;
                 }else{
                     data_tobe_transmitted = 0xC0;
                 }
             }
-        }else{  // if the ball is thrown
+        }else if(data_received == 1){  // if the ball is thrown
             // turn the red LED on and green LED off
-            LED_PORT = (1 << LED_STOP_BIT);
+            LEDS_PORT = (1 << LED_STOP_BIT);
             data_tobe_transmitted = 0xC0;
         }
         // transmit the data

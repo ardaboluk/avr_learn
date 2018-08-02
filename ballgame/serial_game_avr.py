@@ -7,7 +7,7 @@ import serial
 import os
 
 # if True, incoming and outgoing info will be printed to the screen
-LOGS_ENABLED = True
+LOGS_ENABLED = False
 
 # setting for serial comm
 PORT = "/dev/ttyUSB0"
@@ -15,12 +15,12 @@ BAUDRATE = 9600
 TIMEOUT = None
 # check connection first and quit if there's no connection
 if os.system("ls {}".format(PORT)) == 0:
+    # create a serial port object
     print("Serial connected")
 else:
     print("No connection")
     quit()
-# create a serial port object
-serialPort = serial.Serial(port = PORT, baudrate = BAUDRATE, timeout = TIMEOUT)
+serialPort = serial.Serial(PORT, BAUDRATE, timeout = TIMEOUT)
 serialPort.flush()
 
 # initialize pygame
@@ -83,8 +83,9 @@ ball_velocity_upper_limit = 60
 ball_angle_lower_limit = 15  # in degrees
 ball_angle_upper_limit = 75 # in degrees
 
-ball_velocity_initial = ball_velocity_lower_limit
-ball_angle_initial = ball_angle_lower_limit
+# we don't want velocity and angle to reset after a shoot
+ball_velocity_last_value = ball_velocity_lower_limit
+ball_angle_last_value = ball_angle_lower_limit
 
 player_score = 0
 
@@ -174,6 +175,8 @@ def message_display(text):
 def game_loop():
 
     global player_score
+    global ball_velocity_last_value
+    global ball_angle_last_value
 
     # used for controlling the animation speed of the animated objects
     frame_counter = 0
@@ -201,10 +204,8 @@ def game_loop():
     ball_y = kid_lowerleft_y - kid_images[3].get_height() - 3
 
     # velocity and angle of the ball
-    ball_velocity = ball_velocity_initial
-    ball_angle = ball_angle_initial     # in degrees
-    ball_velocity_change = 0
-    ball_angle_change = 0   # in degrees
+    ball_velocity = ball_velocity_last_value
+    ball_angle = ball_angle_last_value     # in degrees
 
     while True:
 
@@ -217,11 +218,11 @@ def game_loop():
         # send information to serial stating if the ball is thrown
         if kid_shoot_anim_playing == False and ball_fly_anim_playing == False and \
             hoop_basket_anim_playing == False:
-            serialPort.write(0)
+            serialPort.write(bytes([0]))
             if LOGS_ENABLED == True:
                 print("Outgoing: 0")
         else:
-            serialPort.write(1)
+            serialPort.write(bytes([1]))
             if LOGS_ENABLED == True:
                 print("Outgoing: 1")
 
@@ -230,20 +231,27 @@ def game_loop():
         # rightmost 6 bits are for value
         data_read = ord(serialPort.read(size = 1))
 
-        if LOGS_ENABLED == True:
-            print("Incoming: {}".format(data_read))
-            print("High two: {}".format(data_read >> 6))
-            print("Low six: {}".format((data_read << 2) >> 2))
-
-        # if ball isn't thrown yet,
+        # if the ball isn't thrown yet
         if kid_shoot_anim_playing == False and ball_fly_anim_playing == False and \
             hoop_basket_anim_playing == False:
             high_two = data_read >> 6
             low_six = (data_read << 2) >> 2
+            if LOGS_ENABLED == True and high_two != 3:
+                print("Incoming: {}".format(data_read))
+                print("High two: {}".format(high_two))
+                print("Low six: {}".format(low_six))
             if high_two == 0:
-                ball_angle = ball_angle_initial + low_six
+                # it seems that coming angle has the value in range [0-63]
+                # we should map this value to be in the range [ball_angle_lower_limit - ball_angle_upper_limit]
+                mapped_angle_increment = ((low_six - 0) * (ball_angle_upper_limit - ball_angle_lower_limit) \
+                    / (63 - 0))
+                ball_angle = ball_angle_lower_limit + int(mapped_angle_increment)
             elif high_two == 1:
-                ball_velocity = ball_velocity_initial + low_six
+                # it seems that coming velocity has the value in range [64-127]
+                # we should map this value to be in the range [ball_velocity_lower_limit - ball_velocity_upper_limit]
+                mapped_velocity_increment = ((low_six - 64) * (ball_velocity_upper_limit - ball_velocity_lower_limit) \
+                    / (127 - 64))
+                ball_velocity = ball_velocity_lower_limit + int(mapped_velocity_increment)
             elif high_two == 2:
                 kid_shoot_anim_playing = True
             # make the angle and velocity stay in boundaries
@@ -255,6 +263,9 @@ def game_loop():
                 ball_velocity = ball_velocity_lower_limit
             elif ball_velocity >= ball_velocity_upper_limit:
                 ball_velocity = ball_velocity_upper_limit
+
+            ball_velocity_last_value = ball_velocity
+            ball_angle_last_value = ball_angle
 
         # animate the kid if conditions met and stop the animation when it's finished
         if kid_shoot_anim_playing == True:
