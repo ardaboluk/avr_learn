@@ -4,6 +4,7 @@ import time
 import math
 import random
 import serial
+import os
 
 # if True, incoming and outgoing info will be printed to the screen
 LOGS_ENABLED = True
@@ -12,6 +13,13 @@ LOGS_ENABLED = True
 PORT = "/dev/ttyUSB0"
 BAUDRATE = 9600
 TIMEOUT = None
+# check connection first and quit if there's no connection
+if os.system("ls {}".format(PORT)) == 0:
+    print("Serial connected")
+else:
+    print("No connection")
+    quit()
+# create a serial port object
 serialPort = serial.Serial(port = PORT, baudrate = BAUDRATE, timeout = TIMEOUT)
 serialPort.flush()
 
