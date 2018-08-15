@@ -20,10 +20,10 @@
 #define BUTTON0_BIT PD6
 #define BUTTON1_BIT PD7
 
-#define button0_pressed (BUTTONS_PIN & (1 << BUTTON0_BIT)) == FALSE
-#define button0_released (BUTTONS_PIN & (1 << BUTTON0_BIT)) == TRUE
-#define button1_pressed (BUTTONS_PIN & (1 << BUTTON1_BIT)) == FALSE
-#define button1_released (BUTTONS_PIN & (1 << BUTTON1_BIT)) == TRUE
+#define button0_pressed (BUTTONS_PIN & (1 << BUTTON0_BIT)) == 0
+#define button0_released (BUTTONS_PIN & (1 << BUTTON0_BIT)) == 1
+#define button1_pressed (BUTTONS_PIN & (1 << BUTTON1_BIT)) == 0
+#define button1_released (BUTTONS_PIN & (1 << BUTTON1_BIT)) == 1
 
 #define DEBOUNCE_DELAY 5
 
@@ -87,7 +87,7 @@ ISR(PCINT2_vect){
     }
 }
 
-void initPCINT2(void){
+void initPCI2(void){
     PCICR |= (1 << PCIE2);
     // we can either use the alias PCINTxx, or corresponding the pin number PDx etc.
     // the second one is more favorable here
@@ -98,5 +98,23 @@ void initPCINT2(void){
 
 int main(void){
 
-    // 
+    // LED pins are output
+    LEDS_DDR |= (1 << LED0_BIT) | (1 << LED1_BIT) | (1 << LED2_BIT);
+    // all LEDS are off at the beginning
+    LEDS_PORT &= ~((1 << LED0_BIT) | (1 << LED1_BIT) | (1 << LED2_BIT));
+    // button pins are input
+    BUTTONS_DDR &= ~((1 << BUTTON0_BIT) | (1 << BUTTON1_BIT));
+    // activate pull-up resistors for the button pins
+    BUTTONS_PORT |= (1 << BUTTON0_BIT) | (1 << BUTTON1_BIT);
+
+    //initialize PCI2
+    initPCI2();
+
+    // main event loop
+    while(TRUE){
+        LEDS_PORT ^= (1 << LED0_BIT);
+        _delay_ms(500);
+    }
+
+    return 0;
 }
