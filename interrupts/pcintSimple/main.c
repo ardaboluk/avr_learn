@@ -21,9 +21,9 @@
 #define BUTTON1_BIT PD7
 
 #define button0_pressed (BUTTONS_PIN & (1 << BUTTON0_BIT)) == 0
-#define button0_released (BUTTONS_PIN & (1 << BUTTON0_BIT)) == 1
+#define button0_released !(button0_pressed)
 #define button1_pressed (BUTTONS_PIN & (1 << BUTTON1_BIT)) == 0
-#define button1_released (BUTTONS_PIN & (1 << BUTTON1_BIT)) == 1
+#define button1_released !(button1_pressed)
 
 #define DEBOUNCE_DELAY 5
 
@@ -58,10 +58,10 @@ uint8_t button0_just_released_debounce(){
         _delay_ms(DEBOUNCE_DELAY);
         if(button0_released){
             is_button0_pressed = FALSE;
-            return 1;
+            return TRUE;
         }
     }
-    return 0;
+    return FALSE;
 }
 
 uint8_t button1_just_released_debounce(){
@@ -69,10 +69,10 @@ uint8_t button1_just_released_debounce(){
         _delay_ms(DEBOUNCE_DELAY);
         if(button1_released){
             is_button1_pressed = FALSE;
-            return 1;
+            return TRUE;
         }
     }
-    return 0;
+    return FALSE;
 }
 
 ISR(PCINT2_vect){
