@@ -28,8 +28,11 @@
 #define DEBOUNCE_DELAY 5
 
 // global variables to check state changes of the buttons
-uint8_t is_button0_pressed = FALSE;
-uint8_t is_button1_pressed = FALSE;
+// these variables should be declared as volatile as they're
+// modified only through the ISR (otherwise compiler optimization
+// could break the code)
+volatile uint8_t is_button0_pressed = FALSE;
+volatile uint8_t is_button1_pressed = FALSE;
 
 uint8_t button0_just_pressed_debounce(){
     if(is_button0_pressed == FALSE && button0_pressed){
