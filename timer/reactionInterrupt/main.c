@@ -21,7 +21,8 @@
 #define BUTTON PD2
 
 // global variables
-uint8_t timer1Started = 0;   // made 1 when timer1 is launched and made 0 when ISR is complete
+// this variable is modified by an ISR, so we should define it volatile
+volatile uint8_t timer1Started = 0;   // made 1 when timer1 is launched and made 0 when ISR is complete
 
 // if leave the parameter list blank in FUNCTION PROTOTYPE, this means that
 // the function can take any number of parameters
@@ -58,8 +59,8 @@ ISR(PCINT2_vect){
 }
 
 int main(void){
-    LEDS_DDR |= (1 << LED1) | (1 << LED2) | (LED3); // LED bits are defined as output
-    LEDS_PORT &= ~((1 << LED1) | (1 << LED2) | (LED3)); // LEDS are turned off initially
+    LEDS_DDR |= (1 << LED1) | (1 << LED2) | (1 << LED3); // LED bits are defined as output
+    LEDS_PORT &= ~((1 << LED1) | (1 << LED2) | (1 << LED3)); // LEDS are turned off initially
     BUTTON_DDR &= ~(1 << BUTTON);   // BUTTON bit is defined as input
     BUTTON_PORT |= (1 << BUTTON);   // enable pull-up resistor
     PCICR |= (1 << PCIE2);  // enable PCI2
@@ -74,15 +75,15 @@ int main(void){
     while(1){
         if(timer1Started == 0){
             LEDS_PORT &= ~((1 << LED1) | (1 << LED2) | (1 << LED3));
-            printStringUSART0("Press a key to continue..\n");
+            printStringUSART0("Press a key to continue..\r\n");
             receiveByteUSART0();
             randomDelay();
             // check if the button is already pressed for cheating
             if((BUTTON_PIN & (1 << BUTTON)) == 0){
-                printStringUSART0("No cheating :)\n");
+                printStringUSART0("No cheating :)\r\n");
                 continue;
             }
-            printStringUSART0("Go!\n");
+            printStringUSART0("Go!\r\n");
             LEDS_PORT |= (1 << LED1) | (1 << LED2) | (1 << LED3);
             // reset timer1 (this should be an atomic operation, refer to datasheet)
             cli();
@@ -91,7 +92,6 @@ int main(void){
             timer1Started = 1;
             // enable PCI2 for the button
             enableButtonInterrupt();
-            }
         }
     }
 
@@ -163,7 +163,7 @@ void printTime(uint16_t p_time){
 
     // 16-bit integer can be 65535 at most, so we start from 10000 to divide
     uint8_t digit = 0;
-    while(p_time > 10000){
+    while(p_time >= 10000){
         p_time -= 10000;
         digit++;
     }
@@ -172,7 +172,7 @@ void printTime(uint16_t p_time){
     }
 
     digit = 0;
-    while(p_time > 1000){
+    while(p_time >= 1000){
         p_time -= 1000;
         digit++;
     }
@@ -183,14 +183,14 @@ void printTime(uint16_t p_time){
     transmitByteUSART0('.');
 
     digit = 0;
-    while(p_time > 100){
+    while(p_time >= 100){
         p_time -= 100;
         digit++;
     }
     transmitByteUSART0('0' + digit);
 
     digit = 0;
-    while(p_time > 10){
+    while(p_time >= 10){
         p_time -= 10;
         digit++;
     }
@@ -198,42 +198,46 @@ void printTime(uint16_t p_time){
 
     transmitByteUSART0('0' + (uint8_t)p_time);
 
-    printStringUSART0(" seconds\n");
+    printStringUSART0(" seconds\r\n");
 
 }
 
 void printComments(uint16_t p_time){
     // i just copied the function from the example in the book
     if (p_time > 2000) {
-        printStringUSART0("---->  Ummm...this is a reaction timer...\n");
+        printStringUSART0("---->  Ummm...this is a reaction timer...\r\n");
     }
     else if (p_time > 1000) {
-        printStringUSART0("---->  Hello?\n");
+        printStringUSART0("---->  Hello?\r\n");
     }
     else if (p_time > 500) {
-        printStringUSART0("---->  Slow.\n");
+        printStringUSART0("---->  Slow.\r\n");
     }
     else if (p_time > 250) {
-        printStringUSART0("---->  Have another cup of coffee.\n");
+        printStringUSART0("---->  Have another cup of coffee.\r\n");
     }
     else if (p_time > 200) {
-        printStringUSART0("---->  Respectable.\n");
+        printStringUSART0("---->  Respectable.\r\n");
     }
     else if (p_time >= 150) {
-        printStringUSART0("---->  Fast.\n");
+        printStringUSART0("---->  Fast.\r\n");
     }
     else if (p_time < 150) {
-        printStringUSART0("---->  Amazing!\n");
+        printStringUSART0("---->  Amazing!\r\n");
     }
 }
 
 void randomDelay(void){
     // here reading the timer don't have to be atomic because we're not interested
     // in the time value, we're just seeking a random value.
-    uint16_t randTime = TCNT1;
+    uint16_t randTime = TCNT1 >> 4;
     // we want to wait between one second and approximately 5 seconds
     // so we should get a value from the timer between 0 and 4000
     // if we right-shift the value of the timer 4 bits, we get a value that is
     // less than or equal to 4095
-    delay_ms(1000 + (randTime >> 4));
+    // another note: _delay_ms expects a compile time int constant
+    _delay_ms(1000);
+    for(; randTime > 0; randTime--){
+        _delay_ms(1);
+    }
 }
