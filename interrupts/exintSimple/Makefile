@@ -7,6 +7,10 @@ CFLAGS = -std=c99 -Wall -g -Os -mmcu=${MCU} -DF_CPU=${F_CPU} -DBAUD=${BAUD} -I.
 TARGET = main
 SRCS = main.c
 
+# Compile: create assembler files from C source files.
+%.s : %.c
+	$(CC) -S -fverbose-asm ${CFLAGS} $< -o $@
+
 all:
 	${CC} ${CFLAGS} -o ${TARGET}.bin ${SRCS}
 	${OBJCOPY} -j .text -j .data -O ihex ${TARGET}.bin ${TARGET}.hex
