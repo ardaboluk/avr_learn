@@ -39,22 +39,17 @@ void randomDelay(void); // wait an unpredictable amount of time
 
 ISR(PCINT2_vect){
     // here, we don't have to debounce the button
-    // we don't even check if the button is pressed or not
-    // knowing that a change occurred is enough
-    // because only the button is connected to PCI2
 
-    // we don't have to disable global interrupt flag, it's already disabled since
-    // we're in an ISR
     uint16_t timePressed = TCNT1 >> 4; // get milliseconds
     printTime(timePressed);
     printComments(timePressed);
     timer1Started = 0;
+    // after disabling the button interrupt (clearing the corresponding mask
+    // bit) the interrupt flag PCIF2 will not get set even if an interrupt request
+    // happens
     disableButtonInterrupt();
     // clear pin change interrupt 2 flag before exiting in case ISR doesn't
-    // complete before the user releases the button. It's important to know
-    // that an interrupt flag is cleared WHEN THE CORRESPONDING INTERRUPT IS
-    // ENABLED. Thus, the flag can be set while the ISR is executing and stay
-    // set when the ISR returns.
+    // complete before the user releases the button.
     PCIFR |= (1 << PCIF2);
 }
 
