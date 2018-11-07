@@ -1,0 +1,15 @@
+
+In page 199, a technique is given about a voltage divider circuit for obtaining
+discrete voltage levels. The paragrap below needs explanation:
+
+"If you only need to produce four discrete voltage levels, you can connect both the high end and low
+end of a resistive voltage divider to two AVR output pins. When both are driven high, the output will
+be  VCC . When both are driven low, the output will read 0 V. When only one of the two outputs is
+driven high, the output of the voltage divider will be between the two extremes."
+
+I think that the schematic for the mentioned voltage divider would be like the one in voltageDivider.png.
+The corresponding diagram including Atmega168 would be like the one in voltageDivider_fritzing.png.
+
+Superposition principle is used to analyze this circuit. The output voltage in this case is calculated as
+Vo = V1 * (R2 / (R1+R2)) + V2 * (R1 / (R1 + R2)).
+
