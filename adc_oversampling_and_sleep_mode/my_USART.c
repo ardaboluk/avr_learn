@@ -61,15 +61,15 @@ void printFloat(float p_number){
     // transmit each digit of the whole number over USART0
     float digit = 0;
     while(p_number > 1){
-        digit = p_number / pow(10, --numDigits);
-        transmitByteUSART0('0' + digit);
-        p_number -= floor(digit) * pow(10, numDigits);
+        digit = floor(p_number / powf(10, --numDigits));
+        transmitByteUSART0('0' + (uint8_t)digit);
+        p_number -= digit * powf(10, numDigits);
     }
 
     // place the decimal point
     transmitByteUSART0('.');
 
     // print two decimal places
-    transmitByteUSART0('0' + (p_number * 10));
-    transmitByteUSART0('0' + (p_number * 100) - floor(p_number * 10) * 10);
+    transmitByteUSART0('0' + (uint8_t)(p_number * 10));
+    transmitByteUSART0('0' + (uint8_t)((p_number * 100) - floor(p_number * 10) * 10));
 }
