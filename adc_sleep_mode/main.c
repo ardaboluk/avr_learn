@@ -25,21 +25,11 @@ void initADC(void){
     set_sleep_mode(SLEEP_MODE_ADC);
 }
 
-uint16_t overSample16x(void){
-    uint16_t oversampled_value = 0;
-    uint8_t i = 0;
-    for(; i < 16; i++){
-        sleep_mode();
-        oversampled_value += ADC;
-    }
-    return (oversampled_value >> 2);
-}
-
 int main(void){
 
     float ohms = 0;
-    uint16_t oversampled_value = 0;
-    float oversampled_voltage = 0;
+    uint16_t sampled_value = 0;
+    float sampled_voltage = 0;
     
     // set up ADC5 for input
     DDRC &= ~(1 << PC5);
@@ -57,19 +47,20 @@ int main(void){
 
     while(1){
 
-        oversampled_value = overSample16x();
+        sleep_mode();
+        sampled_value = ADC;
 
         //DEBUG
-        printFloat(oversampled_value);
+        printFloat(sampled_value);
         printStringUSART0(" \r\n");
 
-        oversampled_voltage = oversampled_value * (REF_VCC / 4096);
+        sampled_voltage = sampled_value * (REF_VCC / 1024);
 
         //DEBUG
-        printFloat(oversampled_voltage);
+        printFloat(sampled_voltage);
         printStringUSART0(" volts\r\n");
 
-        ohms = oversampled_voltage * REF_RESISTOR / (REF_VCC - oversampled_voltage);
+        ohms = sampled_voltage * REF_RESISTOR / (REF_VCC - sampled_voltage);
         printFloat(ohms);
         printStringUSART0(" Ohms\r\n");
         _delay_ms(500);
